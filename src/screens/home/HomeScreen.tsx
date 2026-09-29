@@ -1,98 +1,144 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Image,
   StatusBar,
-  Platform
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../types/navigation';
 import { CurrentReadingCard } from '../../components/home/CurrentReadingCard';
+import { ChildSwitcherModal } from '../../components/parent/ChildSwitcherModal';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useBooksStore } from '../../store/useBooksStore';
+import { readingService } from '../../services/reading.service';
 import { COLORS } from '../../constants/theme';
 
 export const HomeScreen = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { getActiveChild } = useAuthStore();
+  const { fetchBooks } = useBooksStore();
+  const [showChildSwitcher, setShowChildSwitcher] = useState(false);
+  const [todayMinutes, setTodayMinutes] = useState(0);
+
+  const activeChild = getActiveChild();
+  const childName = activeChild?.display_name || 'Adventurer';
+  const childLevel = activeChild?.level || 1;
+
+  React.useEffect(() => {
+    if (activeChild?.id) {
+      fetchBooks(activeChild.id);
+      readingService
+        .getChildAnalytics(activeChild.id)
+        .then((data) => setTodayMinutes(data.todayMinutesRead))
+        .catch((err) => console.error('Failed to load today analytics:', err));
+    }
+  }, [activeChild?.id]);
 
   return (
     <View style={styles.container}>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor={COLORS.white} 
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={COLORS.white}
         translucent={Platform.OS === 'android'}
       />
 
-      {/* Кастомный Header с точным динамическим отступом под StatusBar */}
-      <View 
+      {/* Header */}
+      <View
         style={[
-          styles.header, 
-          { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 4) }
+          styles.header,
+          { paddingTop: insets.top + (Platform.OS === 'android' ? 8 : 4) },
         ]}
       >
         <View style={styles.headerLeft}>
-          <Image 
-  source={require('../../../assets/images/Readora-logo.png')} 
-  style={styles.logoImage} 
-/>
+          <Image
+            source={require('../../../assets/images/Readora-logo.png')}
+            style={styles.logoImage}
+          />
           <View>
             <Text style={styles.headerTitle}>Readora</Text>
             <Text style={styles.headerSubtitle}>Kid Home</Text>
           </View>
         </View>
+
         <View style={styles.headerRight}>
-          <Image 
-  source={require('../../../assets/images/icons/Notification.png')} 
-  style={styles.notificationIcon} 
-/>
-          <View style={styles.avatarPlaceholder} />
+          <Image
+            source={require('../../../assets/images/icons/Notification.png')}
+            style={styles.notificationIcon}
+          />
+          <TouchableOpacity
+            style={styles.avatarPlaceholder}
+            onPress={() => setShowChildSwitcher(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.avatarInitial}>{childName[0]}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 90 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Уровень */}
+        {/* Level Badge */}
         <View style={styles.levelBadge}>
-          <Text style={styles.levelBadgeText}>⭐ Level 3 Adventurer</Text>
+          <Text style={styles.levelBadgeText}>⭐ Level {childLevel} Adventurer</Text>
         </View>
 
-        {/* Приветствие */}
-        <Text style={styles.greetingTitle}>Hi Leo, ready for reading time?</Text>
+        {/* Greeting */}
+        <Text style={styles.greetingTitle}>Hi {childName}, ready for reading time?</Text>
         <Text style={styles.greetingSubtitle}>
           Foxy is excited to explore new chapters with you today!
         </Text>
 
-        {/* Маскот (Лисёнок) */}
+        {/* Mascot */}
         <View style={styles.mascotContainer}>
-          <Image 
-            source={require('../../../assets/images/mascot/fox.png')} 
-            style={styles.mascotImage} 
+          <Image
+            source={require('../../../assets/images/mascot/fox.png')}
+            style={styles.mascotImage}
           />
         </View>
 
-        {/* Карточка текущей книги */}
+        {/* Current Reading Book Card */}
         <CurrentReadingCard />
 
-        {/* Главная кнопка */}
-        <TouchableOpacity style={styles.primaryButton} activeOpacity={0.8}>
+        {/* Start Reading Button */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('ReadingTimer')}
+        >
           <Text style={styles.primaryButtonText}>Start Reading Session</Text>
         </TouchableOpacity>
 
-        {/* Статистика за сегодня */}
+        {/* Today's Stats */}
         <View style={styles.statCard}>
           <View style={styles.statIconContainer}>
             <Text style={styles.statIcon}>🪙</Text>
           </View>
           <View>
-            <Text style={styles.statValue}>18 min</Text>
+            <Text style={styles.statValue}>{todayMinutes} min</Text>
             <Text style={styles.statLabel}>Today's Reading</Text>
           </View>
         </View>
-
       </ScrollView>
+
+      {/* Child Switcher Modal */}
+      <ChildSwitcherModal
+        visible={showChildSwitcher}
+        onClose={() => setShowChildSwitcher(false)}
+        onAddChild={() => navigation.navigate('CreateChild', { isFirstChild: false })}
+      />
     </View>
   );
 };
@@ -120,6 +166,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     marginRight: 12,
+    resizeMode: 'contain',
   },
   headerTitle: {
     fontSize: 16,
@@ -139,19 +186,25 @@ const styles = StyleSheet.create({
     height: 22,
     marginRight: 16,
     resizeMode: 'contain',
-},
+  },
   avatarPlaceholder: {
     width: 36,
     height: 36,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.primaryYellow,
     borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: COLORS.primaryYellow,
+  },
+  avatarInitial: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textDark,
   },
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 40,
     backgroundColor: COLORS.background,
     flexGrow: 1,
   },

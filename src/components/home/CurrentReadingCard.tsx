@@ -1,46 +1,118 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
-import { COLORS } from '../../constants/theme'; // Убедись, что путь верный
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { MainTabParamList } from '../../types/navigation';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useBooksStore } from '../../store/useBooksStore';
+import { COLORS, SHADOWS } from '../../constants/theme';
 
 export const CurrentReadingCard = () => {
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+  const { getActiveChild } = useAuthStore();
+  const { getActiveBook } = useBooksStore();
+
+  const activeChild = getActiveChild();
+  const activeBook = getActiveBook();
+
+  if (!activeBook) {
+    return (
+      <View style={styles.cardContainer}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Current reading</Text>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>
+              🔥 {activeChild?.current_streak ?? 0}-Day Streak!
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.emptyBookContainer}
+          onPress={() => navigation.navigate('Library')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.emptyBookIcon}>📚</Text>
+          <Text style={styles.emptyBookTitle}>No Active Book Selected</Text>
+          <Text style={styles.emptyBookSub}>
+            Tap here to open your library and pick a story to read today!
+          </Text>
+          <View style={styles.chooseBookBtn}>
+            <Text style={styles.chooseBookBtnText}>Browse Library</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const progressPercent = Math.min(
+    100,
+    Math.round((activeBook.current_page / Math.max(1, activeBook.total_pages)) * 100)
+  );
+
   return (
     <View style={styles.cardContainer}>
-      {/* Header карточки */}
+      {/* Header */}
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>Current reading</Text>
         <View style={styles.streakBadge}>
-          <Text style={styles.streakText}>5-Day Streak!</Text>
+          <Text style={styles.streakText}>
+            🔥 {activeChild?.current_streak ?? 0}-Day Streak!
+          </Text>
         </View>
       </View>
 
-      {/* Информация о книге */}
+      {/* Book Info */}
       <View style={styles.bookInfoContainer}>
-        {/* Placeholder для обложки книги. Замени source на require() когда будет ассет */}
-        <View style={styles.bookCoverPlaceholder} />
-        
+        <View style={styles.bookCoverWrapper}>
+          {activeBook.cover_url ? (
+            <Image
+              source={{ uri: activeBook.cover_url }}
+              style={styles.bookCoverImage}
+            />
+          ) : (
+            <View style={styles.bookCoverPlaceholder}>
+              <Text style={styles.placeholderEmoji}>📖</Text>
+            </View>
+          )}
+        </View>
+
         <View style={styles.bookDetails}>
-          <Text style={styles.bookTitle}>The Little Prince</Text>
-          <Text style={styles.bookAuthor}>Antoine de Saint-Exupéry</Text>
-          
+          <Text style={styles.bookTitle} numberOfLines={2}>
+            {activeBook.title}
+          </Text>
+          <Text style={styles.bookAuthor} numberOfLines={1}>
+            {activeBook.author ? `by ${activeBook.author}` : 'Author unknown'}
+          </Text>
+
           <View style={styles.timeInfo}>
-            <Text style={styles.timeIcon}>🕒</Text>
-            <Text style={styles.timeText}>Est. 12 mins left today</Text>
+            <Text style={styles.timeIcon}>⏱️</Text>
+            <Text style={styles.timeText}>Est. 15 mins left today</Text>
           </View>
         </View>
       </View>
 
-      {/* Блок прогресса */}
+      {/* Progress Block */}
       <View style={styles.progressSection}>
         <View style={styles.progressHeader}>
-          <Text style={styles.pageText}>📖 Page 42 of 96</Text>
-          <Text style={styles.percentText}>44%</Text>
+          <Text style={styles.pageText}>
+            📖 Page {activeBook.current_page} of {activeBook.total_pages}
+          </Text>
+          <Text style={styles.percentText}>{progressPercent}%</Text>
         </View>
-        
+
         <View style={styles.progressBarTrack}>
-          <View style={[styles.progressBarFill, { width: '44%' }]} />
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${progressPercent}%` },
+            ]}
+          />
         </View>
-        
-        <Text style={styles.goalText}>Goal: 15 pages/day</Text>
+
+        <Text style={styles.goalText}>
+          Goal: {Math.max(1, Math.round(activeBook.total_pages / 10))} pages/day
+        </Text>
       </View>
     </View>
   );
@@ -51,12 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 24,
     padding: 20,
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4, // Для Android
+    marginTop: 20,
+    ...SHADOWS.small,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -66,7 +134,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '700',
     color: COLORS.textDark,
   },
   streakBadge: {
@@ -78,33 +146,50 @@ const styles = StyleSheet.create({
   streakText: {
     color: COLORS.streakText,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   bookInfoContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 18,
+  },
+  bookCoverWrapper: {
+    width: 65,
+    height: 95,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: COLORS.progressCardBg,
+    marginRight: 16,
+    ...SHADOWS.small,
+  },
+  bookCoverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   bookCoverPlaceholder: {
-    width: 64,
-    height: 96,
-    backgroundColor: COLORS.textLight,
-    borderRadius: 8,
-    marginRight: 16,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3E8DF',
+  },
+  placeholderEmoji: {
+    fontSize: 24,
   },
   bookDetails: {
     flex: 1,
     justifyContent: 'center',
   },
   bookTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.textDark,
     marginBottom: 4,
+    lineHeight: 22,
   },
   bookAuthor: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textLight,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   timeInfo: {
     flexDirection: 'row',
@@ -117,26 +202,27 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 12,
     color: COLORS.textLight,
+    fontWeight: '500',
   },
   progressSection: {
     backgroundColor: COLORS.progressCardBg,
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   pageText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.textDark,
   },
   percentText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: COLORS.primaryYellow,
   },
   progressBarTrack: {
@@ -144,6 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.progressTrack,
     borderRadius: 5,
     marginBottom: 8,
+    overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
@@ -151,7 +238,42 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   goalText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textLight,
+  },
+  emptyBookContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: COLORS.progressCardBg,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+  },
+  emptyBookIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyBookTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginBottom: 4,
+  },
+  emptyBookSub: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    textAlign: 'center',
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  chooseBookBtn: {
+    backgroundColor: COLORS.primaryYellow,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 18,
+  },
+  chooseBookBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textDark,
   },
 });
