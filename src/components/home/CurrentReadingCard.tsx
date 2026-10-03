@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../../types/navigation';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useBooksStore } from '../../store/useBooksStore';
+import { SelectActiveBookModal } from './SelectActiveBookModal';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 export const CurrentReadingCard = () => {
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
   const { getActiveChild } = useAuthStore();
-  const { getActiveBook } = useBooksStore();
+  const { getActiveBook, books } = useBooksStore();
+  const [showSelectModal, setShowSelectModal] = useState(false);
 
   const activeChild = getActiveChild();
   const activeBook = getActiveBook();
@@ -29,18 +31,32 @@ export const CurrentReadingCard = () => {
 
         <TouchableOpacity
           style={styles.emptyBookContainer}
-          onPress={() => navigation.navigate('Library')}
+          onPress={() => {
+            if (books.length > 0) {
+              setShowSelectModal(true);
+            } else {
+              navigation.navigate('Library');
+            }
+          }}
           activeOpacity={0.8}
         >
           <Text style={styles.emptyBookIcon}>📚</Text>
           <Text style={styles.emptyBookTitle}>No Active Book Selected</Text>
           <Text style={styles.emptyBookSub}>
-            Tap here to open your library and pick a story to read today!
+            Tap here to pick a book from your library or add a new story today!
           </Text>
           <View style={styles.chooseBookBtn}>
-            <Text style={styles.chooseBookBtnText}>Browse Library</Text>
+            <Text style={styles.chooseBookBtnText}>
+              {books.length > 0 ? 'Select Active Book' : 'Browse Library'}
+            </Text>
           </View>
         </TouchableOpacity>
+
+        <SelectActiveBookModal
+          visible={showSelectModal}
+          onClose={() => setShowSelectModal(false)}
+          onNavigateToLibrary={() => navigation.navigate('Library')}
+        />
       </View>
     );
   }
@@ -54,7 +70,19 @@ export const CurrentReadingCard = () => {
     <View style={styles.cardContainer}>
       {/* Header */}
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>Current reading</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.cardTitle}>Current reading</Text>
+          {books.length > 1 && (
+            <TouchableOpacity
+              style={styles.changeBookBtn}
+              onPress={() => setShowSelectModal(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.changeBookBtnText}>Change ▾</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.streakBadge}>
           <Text style={styles.streakText}>
             🔥 {activeChild?.current_streak ?? 0}-Day Streak!
@@ -114,6 +142,13 @@ export const CurrentReadingCard = () => {
           Goal: {Math.max(1, Math.round(activeBook.total_pages / 10))} pages/day
         </Text>
       </View>
+
+      {/* Book Selector Modal */}
+      <SelectActiveBookModal
+        visible={showSelectModal}
+        onClose={() => setShowSelectModal(false)}
+        onNavigateToLibrary={() => navigation.navigate('Library')}
+      />
     </View>
   );
 };
@@ -132,8 +167,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   cardTitle: {
     fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  changeBookBtn: {
+    backgroundColor: COLORS.progressCardBg,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+  },
+  changeBookBtnText: {
+    fontSize: 12,
     fontWeight: '700',
     color: COLORS.textDark,
   },

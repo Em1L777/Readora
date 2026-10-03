@@ -14,6 +14,7 @@ export type MainTabParamList = {
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
+  SelectChild: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
   CreateChild: { isFirstChild?: boolean } | undefined;
   ReadingTimer: undefined;

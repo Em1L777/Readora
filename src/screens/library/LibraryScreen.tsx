@@ -16,6 +16,7 @@ import { useBooksStore } from '../../store/useBooksStore';
 import { StatusTabs } from '../../components/library/StatusTabs';
 import { BookCard } from '../../components/library/BookCard';
 import { AddBookModal } from '../../components/library/AddBookModal';
+import { BookDetailsModal } from '../../components/library/BookDetailsModal';
 import { ChildSwitcherModal } from '../../components/parent/ChildSwitcherModal';
 import { BookRow } from '../../types/database.types';
 import { COLORS, SHADOWS } from '../../constants/theme';
@@ -36,6 +37,7 @@ export const LibraryScreen = () => {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showChildSwitcher, setShowChildSwitcher] = useState(false);
+  const [selectedBookForDetails, setSelectedBookForDetails] = useState<BookRow | null>(null);
 
   const activeChild = getActiveChild();
   const filteredBooks = getFilteredBooks();
@@ -145,6 +147,7 @@ export const LibraryScreen = () => {
             <BookCard
               book={item}
               isActive={item.id === activeBookId}
+              onPress={() => setSelectedBookForDetails(item)}
             />
           )}
           contentContainerStyle={[
@@ -169,6 +172,13 @@ export const LibraryScreen = () => {
       <AddBookModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
+      />
+
+      {/* Book Details Modal Screen / Sheet */}
+      <BookDetailsModal
+        visible={Boolean(selectedBookForDetails)}
+        book={selectedBookForDetails}
+        onClose={() => setSelectedBookForDetails(null)}
       />
 
       {/* Child Switcher Modal */}

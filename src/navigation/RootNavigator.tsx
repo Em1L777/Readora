@@ -6,6 +6,7 @@ import { RootStackParamList } from '../types/navigation';
 import { AuthNavigator } from './AuthNavigator';
 import { TabNavigator } from './TabNavigator';
 import { CreateChildScreen } from '../screens/parent/CreateChildScreen';
+import { ChildSelectionScreen } from '../screens/auth/ChildSelectionScreen';
 import { ReadingTimerScreen } from '../screens/timer/ReadingTimerScreen';
 import { useAuthStore } from '../store/useAuthStore';
 import { COLORS } from '../constants/theme';
@@ -13,7 +14,7 @@ import { COLORS } from '../constants/theme';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const RootNavigator = () => {
-  const { session, children, isLoading, initialize } = useAuthStore();
+  const { session, children, isChildSelected, isLoading, initialize } = useAuthStore();
 
   useEffect(() => {
     initialize();
@@ -43,6 +44,15 @@ export const RootNavigator = () => {
             component={CreateChildScreen}
             initialParams={{ isFirstChild: true }}
           />
+        ) : !isChildSelected ? (
+          <>
+            <Stack.Screen name="SelectChild" component={ChildSelectionScreen} />
+            <Stack.Screen
+              name="CreateChild"
+              component={CreateChildScreen}
+              options={{ presentation: 'modal' }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen name="Main" component={TabNavigator} />

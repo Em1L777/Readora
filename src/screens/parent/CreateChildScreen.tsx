@@ -58,13 +58,8 @@ export const CreateChildScreen: React.FC<Props> = ({ navigation, route }) => {
       );
 
       await refreshProfiles();
-      await setActiveChildId(newChild.id);
-
-      // Navigate to Main tabs
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' }],
-      });
+      const { selectChild } = useAuthStore.getState();
+      await selectChild(newChild.id);
     } catch (err: unknown) {
       console.error('Failed to create child profile:', err);
       const message = err instanceof Error ? err.message : 'Failed to create child profile.';

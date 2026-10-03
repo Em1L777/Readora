@@ -5,10 +5,8 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { BookRow, BookStatus } from '../../types/database.types';
-import { useBooksStore } from '../../store/useBooksStore';
+import { BookRow } from '../../types/database.types';
 import { COLORS, SHADOWS } from '../../constants/theme';
 
 interface BookCardProps {
@@ -18,7 +16,6 @@ interface BookCardProps {
 }
 
 export const BookCard: React.FC<BookCardProps> = ({ book, isActive, onPress }) => {
-  const { updateBook, deleteBook, setActiveBookId } = useBooksStore();
   const [imageError, setImageError] = useState(false);
 
   const progressPercent = Math.min(
@@ -28,49 +25,16 @@ export const BookCard: React.FC<BookCardProps> = ({ book, isActive, onPress }) =
 
   const pagesRemaining = Math.max(0, book.total_pages - book.current_page);
 
-  const handleStatusChange = () => {
-    const nextStatusMap: Record<BookStatus, BookStatus> = {
-      reading: 'completed',
-      completed: 'dropped',
-      dropped: 'reading',
-    };
-
-    const nextStatus = nextStatusMap[book.status];
-    updateBook(book.id, { status: nextStatus });
-  };
-
-  const handleOptionsPress = () => {
-    Alert.alert(
-      book.title,
-      `Author: ${book.author || 'Unknown'}\nProgress: Page ${book.current_page}/${book.total_pages} (${progressPercent}%)`,
-      [
-        {
-          text: isActive ? 'Currently Active Story' : 'Set as Current Active Book',
-          onPress: () => setActiveBookId(book.id),
-        },
-        {
-          text: `Move to ${book.status === 'reading' ? 'Completed' : book.status === 'completed' ? 'On Hold' : 'Reading'}`,
-          onPress: handleStatusChange,
-        },
-        {
-          text: 'Delete Book',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Delete Book', `Are you sure you want to delete "${book.title}"?`, [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => deleteBook(book.id) },
-            ]);
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    }
   };
 
   return (
     <TouchableOpacity
       style={[styles.card, isActive && styles.activeCard]}
-      onPress={onPress || handleOptionsPress}
+      onPress={handlePress}
       activeOpacity={0.85}
     >
       {/* Top Banner for Active Book */}
@@ -107,7 +71,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, isActive, onPress }) =
             </Text>
             <TouchableOpacity
               style={styles.moreBtn}
-              onPress={handleOptionsPress}
+              onPress={handlePress}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.moreIcon}>⋮</Text>

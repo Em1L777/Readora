@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -33,6 +33,15 @@ export const ParentScreen = () => {
     refreshProfiles,
     signOut,
   } = useAuthStore();
+
+  // Auto-lock parent mode when navigating away / switching tabs
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        lockParent();
+      };
+    }, [lockParent])
+  );
 
   const activeChild = getActiveChild();
 

@@ -10,6 +10,7 @@ interface AuthState {
   parentProfile: ParentProfile | null;
   children: ChildProfile[];
   activeChildId: string | null;
+  isChildSelected: boolean;
   isParentUnlocked: boolean;
   lastParentUnlockTimestamp: number | null;
   isLoading: boolean;
@@ -21,6 +22,8 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   setActiveChildId: (childId: string) => Promise<void>;
+  selectChild: (childId: string) => Promise<void>;
+  deselectChild: () => void;
   unlockParent: (pin: string) => boolean;
   lockParent: () => void;
   refreshProfiles: () => Promise<void>;
@@ -34,6 +37,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   parentProfile: null,
   children: [],
   activeChildId: null,
+  isChildSelected: false,
   isParentUnlocked: false,
   lastParentUnlockTimestamp: null,
   isLoading: true,
@@ -99,6 +103,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Failed to persist active child ID:', err);
       set({ activeChildId: childId });
     }
+  },
+
+  selectChild: async (childId: string) => {
+    await get().setActiveChildId(childId);
+    set({ isChildSelected: true });
+  },
+
+  deselectChild: () => {
+    set({ isChildSelected: false });
   },
 
   unlockParent: (pin: string) => {
